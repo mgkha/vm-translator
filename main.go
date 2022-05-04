@@ -21,6 +21,8 @@ func main() {
 	inputFileName := os.Args[1]
 	outputFilename := strings.TrimSuffix(inputFileName, filepath.Ext(inputFileName)) + ".asm"
 
+	className := strings.TrimSuffix(filepath.Base(inputFileName), filepath.Ext(inputFileName))
+
 	inFile, err := os.Open(inputFileName)
 	check(err)
 	defer inFile.Close()
@@ -32,7 +34,7 @@ func main() {
 	writer := bufio.NewWriter(outFile)
 
 	parser.Init(reader)
-	codewriter.Init(writer)
+	codewriter.Init(writer, className)
 
 	for parser.HasMoreLines() {
 		parser.Advance()
