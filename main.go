@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -48,4 +49,5 @@ func main() {
 		}
 	}
 	writer.Flush()
+	fmt.Println("Compilation succeed!")
 }

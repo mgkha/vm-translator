@@ -45,12 +45,12 @@ M=M-1
 D=A
 @THIS
 D=D+M
-@addr
+@segmentAddr
 M=D
 @SP
 A=M
 D=M
-@addr
+@segmentAddr
 A=M
 M=D
 // push constant 46
@@ -68,12 +68,12 @@ M=M-1
 D=A
 @THAT
 D=D+M
-@addr
+@segmentAddr
 M=D
 @SP
 A=M
 D=M
-@addr
+@segmentAddr
 A=M
 M=D
 // push pointer 0
@@ -110,9 +110,9 @@ M=M+1
 D=A
 @THIS
 D=D+M
-@addr
+@segmentAddr
 M=D
-@addr
+@segmentAddr
 A=M
 D=M
 @SP
@@ -138,9 +138,9 @@ M=M+1
 D=A
 @THAT
 D=D+M
-@addr
+@segmentAddr
 M=D
-@addr
+@segmentAddr
 A=M
 D=M
 @SP

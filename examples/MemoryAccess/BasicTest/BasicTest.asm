@@ -13,12 +13,12 @@ M=M-1
 D=A
 @LCL
 D=D+M
-@addr
+@segmentAddr
 M=D
 @SP
 A=M
 D=M
-@addr
+@segmentAddr
 A=M
 M=D
 // push constant 21
@@ -44,12 +44,12 @@ M=M-1
 D=A
 @ARG
 D=D+M
-@addr
+@segmentAddr
 M=D
 @SP
 A=M
 D=M
-@addr
+@segmentAddr
 A=M
 M=D
 // pop argument 1
@@ -59,12 +59,12 @@ M=M-1
 D=A
 @ARG
 D=D+M
-@addr
+@segmentAddr
 M=D
 @SP
 A=M
 D=M
-@addr
+@segmentAddr
 A=M
 M=D
 // push constant 36
@@ -82,12 +82,12 @@ M=M-1
 D=A
 @THIS
 D=D+M
-@addr
+@segmentAddr
 M=D
 @SP
 A=M
 D=M
-@addr
+@segmentAddr
 A=M
 M=D
 // push constant 42
@@ -113,12 +113,12 @@ M=M-1
 D=A
 @THAT
 D=D+M
-@addr
+@segmentAddr
 M=D
 @SP
 A=M
 D=M
-@addr
+@segmentAddr
 A=M
 M=D
 // pop that 2
@@ -128,12 +128,12 @@ M=M-1
 D=A
 @THAT
 D=D+M
-@addr
+@segmentAddr
 M=D
 @SP
 A=M
 D=M
-@addr
+@segmentAddr
 A=M
 M=D
 // push constant 510
@@ -151,12 +151,12 @@ M=M-1
 D=A
 @5
 D=D+A
-@addr
+@segmentAddr
 M=D
 @SP
 A=M
 D=M
-@addr
+@segmentAddr
 A=M
 M=D
 // push local 0
@@ -164,9 +164,9 @@ M=D
 D=A
 @LCL
 D=D+M
-@addr
+@segmentAddr
 M=D
-@addr
+@segmentAddr
 A=M
 D=M
 @SP
@@ -179,9 +179,9 @@ M=M+1
 D=A
 @THAT
 D=D+M
-@addr
+@segmentAddr
 M=D
-@addr
+@segmentAddr
 A=M
 D=M
 @SP
@@ -207,9 +207,9 @@ M=M+1
 D=A
 @ARG
 D=D+M
-@addr
+@segmentAddr
 M=D
-@addr
+@segmentAddr
 A=M
 D=M
 @SP
@@ -235,9 +235,9 @@ M=M+1
 D=A
 @THIS
 D=D+M
-@addr
+@segmentAddr
 M=D
-@addr
+@segmentAddr
 A=M
 D=M
 @SP
@@ -250,9 +250,9 @@ M=M+1
 D=A
 @THIS
 D=D+M
-@addr
+@segmentAddr
 M=D
-@addr
+@segmentAddr
 A=M
 D=M
 @SP
@@ -291,9 +291,9 @@ M=M+1
 D=A
 @5
 D=D+A
-@addr
+@segmentAddr
 M=D
-@addr
+@segmentAddr
 A=M
 D=M
 @SP

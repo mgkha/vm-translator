@@ -17,7 +17,7 @@ func Init(w *bufio.Writer, name string) {
 }
 
 func WritePushPop(command string, segment string, index int) {
-	fmt.Printf("%v %v %v\n", command, segment, index)
+	// fmt.Printf("%v %v %v\n", command, segment, index)
 	fmt.Fprintf(writer, "// %v %v %v\n", command, segment, index)
 
 	var symbol string
@@ -35,59 +35,47 @@ func WritePushPop(command string, segment string, index int) {
 	if command == parser.C_PUSH.String() {
 		if segment == "constant" {
 
-			fmt.Fprintf(writer, "@%v\n", index)
-			fmt.Fprintf(writer, "D=A\n") // D=10
+			loadD_Value(index) // D = index
 
-			fmt.Fprintf(writer, "@SP\n")
-			fmt.Fprintf(writer, "A=M\n") // *sp
-			fmt.Fprintf(writer, "M=D\n")
+			pushD_To_Stack()
 
-			fmt.Fprintf(writer, "@SP\n")
-			fmt.Fprintf(writer, "M=M+1\n") // sp++
+			incrementStackPointer()
+
 			return
 		}
 
 		if segment == "local" || segment == "argument" || segment == "this" || segment == "that" || segment == "temp" {
 
-			fmt.Fprintf(writer, "@%v\n", index)
-			fmt.Fprintf(writer, "D=A\n")
+			loadD_Value(index)
 
 			if segment == "temp" {
 				fmt.Fprintf(writer, "@5\n")    // temp base address is 5
 				fmt.Fprintf(writer, "D=D+A\n") // D = 5 + index
 			} else {
 				fmt.Fprintf(writer, "@%v\n", symbol)
-				fmt.Fprintf(writer, "D=D+M\n") // D = segmentPointer + index
+				fmt.Fprintf(writer, "D=D+M\n") // D = segmentPointer + D (index)
 			}
 
-			fmt.Fprintf(writer, "@addr\n")
-			fmt.Fprintf(writer, "M=D\n") // addr = D
+			loadAddr_From_D("segmentAddr") // segmentAddr = D
 
-			fmt.Fprintf(writer, "@addr\n")
-			fmt.Fprintf(writer, "A=M\n") // *addr
+			loadA_From_Addr("segmentAddr") // *segmentAddr
+
 			fmt.Fprintf(writer, "D=M\n")
 
-			fmt.Fprintf(writer, "@SP\n")
-			fmt.Fprintf(writer, "A=M\n") // *sp
-			fmt.Fprintf(writer, "M=D\n")
+			pushD_To_Stack()
 
-			fmt.Fprintf(writer, "@SP\n")
-			fmt.Fprintf(writer, "M=M+1\n") // sp++
+			incrementStackPointer()
 
 			return
 		}
 
 		if segment == "static" {
 
-			fmt.Fprintf(writer, "@%v.%v\n", fileName, index)
-			fmt.Fprintf(writer, "D=M\n") // D = fileName.index
+			loadD_Addr(fmt.Sprintf("%v.%v", fileName, index)) // D = @fileName.index
 
-			fmt.Fprintf(writer, "@SP\n")
-			fmt.Fprintf(writer, "A=M\n") // *sp
-			fmt.Fprintf(writer, "M=D\n")
+			pushD_To_Stack()
 
-			fmt.Fprintf(writer, "@SP\n")
-			fmt.Fprintf(writer, "M=M+1\n") // sp++
+			incrementStackPointer()
 
 			return
 		}
@@ -95,21 +83,16 @@ func WritePushPop(command string, segment string, index int) {
 		if segment == "pointer" {
 			switch index {
 			case 0:
-				fmt.Fprintf(writer, "@THIS\n")
+				loadD_Addr("THIS")
 			case 1:
-				fmt.Fprintf(writer, "@THAT\n")
+				loadD_Addr("THAT")
 			default:
 				panic("invalid index of pointer segment")
 			}
 
-			fmt.Fprintf(writer, "D=M\n") // D = this/that
+			pushD_To_Stack() // *sp = D (THIS/THAT)
 
-			fmt.Fprintf(writer, "@SP\n")
-			fmt.Fprintf(writer, "A=M\n") // *sp
-			fmt.Fprintf(writer, "M=D\n") // *sp = this/that
-
-			fmt.Fprintf(writer, "@SP\n")
-			fmt.Fprintf(writer, "M=M+1\n") // sp++
+			incrementStackPointer()
 
 			return
 		}
@@ -117,29 +100,24 @@ func WritePushPop(command string, segment string, index int) {
 	} else if command == parser.C_POP.String() {
 		if segment == "local" || segment == "argument" || segment == "this" || segment == "that" || segment == "temp" {
 
-			fmt.Fprintf(writer, "@SP\n")
-			fmt.Fprintf(writer, "M=M-1\n") // sp--
+			decrementStackPointer()
 
-			fmt.Fprintf(writer, "@%v\n", index)
-			fmt.Fprintf(writer, "D=A\n")
+			loadD_Value(index)
 
 			if segment == "temp" {
 				fmt.Fprintf(writer, "@5\n")    // temp base address is 5
 				fmt.Fprintf(writer, "D=D+A\n") // D = 5 + index
 			} else {
 				fmt.Fprintf(writer, "@%v\n", symbol)
-				fmt.Fprintf(writer, "D=D+M\n") // D = segmentPointer + index
+				fmt.Fprintf(writer, "D=D+M\n") // D = segmentPointer + D (index)
 			}
 
-			fmt.Fprintf(writer, "@addr\n")
-			fmt.Fprintf(writer, "M=D\n") // addr = D
+			loadAddr_From_D("segmentAddr") // segmentAddr = D
 
-			fmt.Fprintf(writer, "@SP\n")
-			fmt.Fprintf(writer, "A=M\n") // *sp
-			fmt.Fprintf(writer, "D=M\n")
+			loadD_From_Stack()
 
-			fmt.Fprintf(writer, "@addr\n")
-			fmt.Fprintf(writer, "A=M\n") // *addr
+			loadA_From_Addr("segmentAddr") // *segmentAddr
+
 			fmt.Fprintf(writer, "M=D\n")
 
 			return
@@ -147,37 +125,28 @@ func WritePushPop(command string, segment string, index int) {
 
 		if segment == "static" {
 
-			fmt.Fprintf(writer, "@SP\n")
-			fmt.Fprintf(writer, "M=M-1\n") // sp--
+			decrementStackPointer()
 
-			fmt.Fprintf(writer, "@SP\n")
-			fmt.Fprintf(writer, "A=M\n") // *sp
-			fmt.Fprintf(writer, "D=M\n")
+			loadD_From_Stack()
 
-			fmt.Fprintf(writer, "@%v.%v\n", fileName, index)
-			fmt.Fprintf(writer, "M=D\n") // fileName.index = D
+			loadAddr_From_D(fmt.Sprintf("%v.%v", fileName, index))
 
 			return
 		}
 
 		if segment == "pointer" {
-			fmt.Fprintf(writer, "@SP\n")
-			fmt.Fprintf(writer, "M=M-1\n") // sp--
+			decrementStackPointer()
 
-			fmt.Fprintf(writer, "@SP\n")
-			fmt.Fprintf(writer, "A=M\n") // *sp
-			fmt.Fprintf(writer, "D=M\n") // D = *sp
+			loadD_From_Stack()
 
 			switch index {
 			case 0:
-				fmt.Fprintf(writer, "@THIS\n")
+				loadAddr_From_D("THIS")
 			case 1:
-				fmt.Fprintf(writer, "@THAT\n")
+				loadAddr_From_D("THAT")
 			default:
 				panic("invalid index of pointer segment")
 			}
-
-			fmt.Fprintf(writer, "M=D\n") // this/that = D
 
 			return
 		}
@@ -191,158 +160,119 @@ func WriteArithmetic(command string) {
 
 	switch command {
 	case "add":
-		fmt.Fprintf(writer, "@SP\n")
-		fmt.Fprintf(writer, "M=M-1\n") // sp--
+		decrementStackPointer()
 
-		fmt.Fprintf(writer, "@SP\n")
-		fmt.Fprintf(writer, "A=M\n") // *sp
-		fmt.Fprintf(writer, "D=M\n") // D = *sp
+		loadD_From_Stack() // D = *sp
 
-		fmt.Fprintf(writer, "@SP\n")
-		fmt.Fprintf(writer, "M=M-1\n") // sp--
+		decrementStackPointer()
 
-		fmt.Fprintf(writer, "@SP\n")
-		fmt.Fprintf(writer, "A=M\n")   // *sp
+		loadA_From_Stack()
+
 		fmt.Fprintf(writer, "M=D+M\n") // *sp = D + *sp
 
-		fmt.Fprintf(writer, "@SP\n")
-		fmt.Fprintf(writer, "M=M+1\n") // sp++
+		incrementStackPointer()
 
 	case "sub":
-		fmt.Fprintf(writer, "@SP\n")
-		fmt.Fprintf(writer, "M=M-1\n") // sp--
+		decrementStackPointer()
 
-		fmt.Fprintf(writer, "@SP\n")
-		fmt.Fprintf(writer, "A=M\n") // *sp
-		fmt.Fprintf(writer, "D=M\n") // D = *sp
+		loadD_From_Stack() // D = *sp
 
-		fmt.Fprintf(writer, "@SP\n")
-		fmt.Fprintf(writer, "M=M-1\n") // sp--
+		decrementStackPointer()
 
-		fmt.Fprintf(writer, "@SP\n")
-		fmt.Fprintf(writer, "A=M\n")   // *sp
+		loadA_From_Stack()
+
 		fmt.Fprintf(writer, "M=M-D\n") // *sp = *sp - D
 
-		fmt.Fprintf(writer, "@SP\n")
-		fmt.Fprintf(writer, "M=M+1\n") // sp++
+		incrementStackPointer()
 
 	case "eq":
-		fmt.Fprintf(writer, "@SP\n")
-		fmt.Fprintf(writer, "M=M-1\n") // sp--
+		decrementStackPointer()
 
-		fmt.Fprintf(writer, "@SP\n")
-		fmt.Fprintf(writer, "A=M\n") // *sp
-		fmt.Fprintf(writer, "D=M\n") // D = *sp
+		loadD_From_Stack() // D = *sp
 
-		fmt.Fprintf(writer, "@SP\n")
-		fmt.Fprintf(writer, "M=M-1\n") // sp--
+		decrementStackPointer()
 
-		fmt.Fprintf(writer, "@SP\n")
-		fmt.Fprintf(writer, "A=M\n")   // *sp
+		loadA_From_Stack()
+
 		fmt.Fprintf(writer, "D=M-D\n") // D = *sp - D
 
 		compareLogic("D;JEQ")
 
-		fmt.Fprintf(writer, "@SP\n")
-		fmt.Fprintf(writer, "M=M+1\n") // sp++
+		incrementStackPointer()
 
 	case "lt":
-		fmt.Fprintf(writer, "@SP\n")
-		fmt.Fprintf(writer, "M=M-1\n") // sp--
+		decrementStackPointer()
 
-		fmt.Fprintf(writer, "@SP\n")
-		fmt.Fprintf(writer, "A=M\n") // *sp
-		fmt.Fprintf(writer, "D=M\n") // D = *sp
+		loadD_From_Stack() // D = *sp
 
-		fmt.Fprintf(writer, "@SP\n")
-		fmt.Fprintf(writer, "M=M-1\n") // sp--
+		decrementStackPointer()
 
-		fmt.Fprintf(writer, "@SP\n")
-		fmt.Fprintf(writer, "A=M\n")   // *sp
+		loadA_From_Stack()
+
 		fmt.Fprintf(writer, "D=M-D\n") // D = *sp - D
 
 		compareLogic("D;JLT")
 
-		fmt.Fprintf(writer, "@SP\n")
-		fmt.Fprintf(writer, "M=M+1\n") // sp++
+		incrementStackPointer()
 
 	case "gt":
-		fmt.Fprintf(writer, "@SP\n")
-		fmt.Fprintf(writer, "M=M-1\n") // sp--
+		decrementStackPointer()
 
-		fmt.Fprintf(writer, "@SP\n")
-		fmt.Fprintf(writer, "A=M\n") // *sp
-		fmt.Fprintf(writer, "D=M\n") // D = *sp
+		loadD_From_Stack() // D = *sp
 
-		fmt.Fprintf(writer, "@SP\n")
-		fmt.Fprintf(writer, "M=M-1\n") // sp--
+		decrementStackPointer()
 
-		fmt.Fprintf(writer, "@SP\n")
-		fmt.Fprintf(writer, "A=M\n")   // *sp
+		loadA_From_Stack()
+
 		fmt.Fprintf(writer, "D=M-D\n") // D = *sp - D
 
 		compareLogic("D;JGT")
 
-		fmt.Fprintf(writer, "@SP\n")
-		fmt.Fprintf(writer, "M=M+1\n") // sp++
+		incrementStackPointer()
 
 	case "and":
-		fmt.Fprintf(writer, "@SP\n")
-		fmt.Fprintf(writer, "M=M-1\n") // sp--
+		decrementStackPointer()
 
-		fmt.Fprintf(writer, "@SP\n")
-		fmt.Fprintf(writer, "A=M\n") // *sp
-		fmt.Fprintf(writer, "D=M\n") // D = *sp
+		loadD_From_Stack() // D = *sp
 
-		fmt.Fprintf(writer, "@SP\n")
-		fmt.Fprintf(writer, "M=M-1\n") // sp--
+		decrementStackPointer()
 
-		fmt.Fprintf(writer, "@SP\n")
-		fmt.Fprintf(writer, "A=M\n")   // *sp
+		loadA_From_Stack()
+
 		fmt.Fprintf(writer, "M=D&M\n") // *sp = *sp & D
 
-		fmt.Fprintf(writer, "@SP\n")
-		fmt.Fprintf(writer, "M=M+1\n") // sp++
+		incrementStackPointer()
 
 	case "or":
-		fmt.Fprintf(writer, "@SP\n")
-		fmt.Fprintf(writer, "M=M-1\n") // sp--
+		decrementStackPointer()
 
-		fmt.Fprintf(writer, "@SP\n")
-		fmt.Fprintf(writer, "A=M\n") // *sp
-		fmt.Fprintf(writer, "D=M\n") // D = *sp
+		loadD_From_Stack() // D = *sp
 
-		fmt.Fprintf(writer, "@SP\n")
-		fmt.Fprintf(writer, "M=M-1\n") // sp--
+		decrementStackPointer()
 
-		fmt.Fprintf(writer, "@SP\n")
-		fmt.Fprintf(writer, "A=M\n")   // *sp
+		loadA_From_Stack()
+
 		fmt.Fprintf(writer, "M=D|M\n") // *sp = *sp | D
 
-		fmt.Fprintf(writer, "@SP\n")
-		fmt.Fprintf(writer, "M=M+1\n") // sp++
+		incrementStackPointer()
 
 	case "not":
-		fmt.Fprintf(writer, "@SP\n")
-		fmt.Fprintf(writer, "M=M-1\n") // sp--
+		decrementStackPointer()
 
-		fmt.Fprintf(writer, "@SP\n")
-		fmt.Fprintf(writer, "A=M\n")  // *sp
+		loadA_From_Stack()
+
 		fmt.Fprintf(writer, "M=!M\n") // *sp = !*sp
 
-		fmt.Fprintf(writer, "@SP\n")
-		fmt.Fprintf(writer, "M=M+1\n") // sp++
+		incrementStackPointer()
 
 	case "neg":
-		fmt.Fprintf(writer, "@SP\n")
-		fmt.Fprintf(writer, "M=M-1\n") // sp--
+		decrementStackPointer()
 
-		fmt.Fprintf(writer, "@SP\n")
-		fmt.Fprintf(writer, "A=M\n")  // *sp
+		loadA_From_Stack()
+
 		fmt.Fprintf(writer, "M=-M\n") // *sp = -*sp
 
-		fmt.Fprintf(writer, "@SP\n")
-		fmt.Fprintf(writer, "M=M+1\n") // sp++
+		incrementStackPointer()
 
 	}
 }
@@ -351,18 +281,69 @@ func compareLogic(jump string) {
 	fmt.Fprintf(writer, "@LABEL_%v\n", suffix)
 	fmt.Fprintf(writer, "%v\n", jump)
 
-	fmt.Fprintf(writer, "@SP\n")
-	fmt.Fprintf(writer, "A=M\n") // *sp
+	loadA_From_Stack()
+
 	fmt.Fprintf(writer, "M=0\n") // *sp = false
 	fmt.Fprintf(writer, "@END_%v\n", suffix)
 	fmt.Fprintf(writer, "0;JMP\n")
 
 	fmt.Fprintf(writer, "(LABEL_%v)\n", suffix)
-	fmt.Fprintf(writer, "@SP\n")
-	fmt.Fprintf(writer, "A=M\n")  // *sp
+
+	loadA_From_Stack()
+
 	fmt.Fprintf(writer, "M=-1\n") // *sp = true
 
 	fmt.Fprintf(writer, "(END_%v)\n", suffix)
 
 	suffix++
+}
+
+func incrementStackPointer() {
+	fmt.Fprintf(writer, "@SP\n")
+	fmt.Fprintf(writer, "M=M+1\n") // sp++
+}
+
+func decrementStackPointer() {
+	fmt.Fprintf(writer, "@SP\n")
+	fmt.Fprintf(writer, "M=M-1\n") // sp--
+}
+
+func loadD_Value(value int) {
+	fmt.Fprintf(writer, "@%v\n", value)
+	fmt.Fprintf(writer, "D=A\n") // D = value
+}
+
+func loadD_Addr(addr string) {
+	fmt.Fprintf(writer, "@%v\n", addr)
+	fmt.Fprintf(writer, "D=M\n") // D = addr
+}
+
+// addr = D
+func loadAddr_From_D(addr string) {
+	fmt.Fprintf(writer, "@%v\n", addr)
+	fmt.Fprintf(writer, "M=D\n")
+}
+
+// A = addr
+func loadA_From_Addr(addr string) {
+	fmt.Fprintf(writer, "@%v\n", addr)
+	fmt.Fprintf(writer, "A=M\n")
+}
+
+// A = sp
+func loadA_From_Stack() {
+	fmt.Fprintf(writer, "@SP\n")
+	fmt.Fprintf(writer, "A=M\n") // A = sp
+}
+
+// D = *sp
+func loadD_From_Stack() {
+	loadA_From_Stack()
+	fmt.Fprintf(writer, "D=M\n")
+}
+
+// *sp = D
+func pushD_To_Stack() {
+	loadA_From_Stack()
+	fmt.Fprintf(writer, "M=D\n")
 }
